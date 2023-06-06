@@ -17,7 +17,11 @@ class SamplesInfo:
         self._load()
 
     def _load(self):
-        for folder in os.listdir(self._data_path):
+        folders = os.listdir(self._data_path)
+        if '.DS_Store' in folders:
+            folders.remove('.DS_Store')
+
+        for folder in folders:
             self._folder_path = os.path.join(self._data_path, folder)
             self._folder_files = os.listdir(self._folder_path)
 

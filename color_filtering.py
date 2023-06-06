@@ -4,12 +4,12 @@ import argparse
 
 max_value = 255
 max_value_H = 360 // 2
-low_H = 0
-low_S = 0
-low_V = 0
-high_H = max_value_H
-high_S = max_value
-high_V = max_value
+low_H = 25
+low_S = 96
+low_V = 100
+high_H = 180
+high_S = 255
+high_V = 185
 window_capture_name = 'Video Capture'
 window_detection_name = 'Object Detection'
 low_H_name = 'Low H'
@@ -78,7 +78,7 @@ cv.createTrackbar(low_V_name, window_detection_name, low_V, max_value, on_low_V_
 cv.createTrackbar(high_V_name, window_detection_name, high_V, max_value, on_high_V_thresh_trackbar)
 
 import imutils
-frame = cv.imread('/home/hosein/Work/Hara/Projects/Cells/samples/CANCER2_ALL_CANCER4/20170620_152302.jpg')
+frame = cv.imread("/Users/hosein/PycharmProjects/FindCellsBos/cells_imgs/992fa70f76a9462db61f712cab8a58f0.jpg")
 frame = imutils.resize(frame, height=500)
 import time
 
@@ -86,9 +86,14 @@ while True:
     cv.waitKey(100)
     if frame is None:
         break
-    frame_HSV = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-    frame_threshold = cv.inRange(frame_HSV, (low_H, low_S, low_V), (high_H, high_S, high_V))
+    frame_HSV = cv.cvtColor(frame.copy(), cv.COLOR_BGR2HSV)
+    frame_threshold = cv.inRange(frame_HSV.copy(), (low_H, low_S, low_V), (high_H, high_S, high_V))
 
     cv.imshow(window_capture_name, frame)
     cv.imshow(window_detection_name, frame_threshold)
-    cv.imshow('Res', cv.bitwise_and(frame, frame, mask=frame_threshold))
+
+    # edges = cv.Canny(frame_threshold.copy(), 30, 200)
+    contours, hierarchy = cv.findContours(frame_threshold,
+                                           cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    # cv.imshow('Res2', cv.bitwise_and(frame, frame, mask=frame_threshold))
+    cv.imshow('Res', cv.drawContours(frame.copy(), contours, -1, (0, 255, 0), 3))
