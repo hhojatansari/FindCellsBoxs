@@ -9,4 +9,4 @@ samples_info = SamplesInfo(data_path)
 samples_data = SamplesData(samples_info[0:])
 cells_detector = FindCellsBox()
 
-cells_detector.detect(samples_data[0:])
+cells_detector.detect(samples_data[0:], improve_method='mean')

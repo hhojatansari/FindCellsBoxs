@@ -13,9 +13,10 @@ class FindCellsBox:
         self._patch_margin = None
         self._image_patches = {}
 
-
         self._canny_low = 101
         self._canny_high = 35
+
+        self._improve_method = None
     
     def _reset_vars(self):
         self._image = None
@@ -24,8 +25,9 @@ class FindCellsBox:
         self._patch_margin = None
         self._image_patches = {}
 
-    def detect(self, samples_data):
+    def detect(self, samples_data, improve_method=None):
         try:
+            self._improve_method = improve_method
             for sample in samples_data:
                 self._reset_vars()
 
@@ -155,24 +157,44 @@ class FindCellsBox:
 
     def _result_image(self):
         try:
-            for patch_index in self._image_patches:
-                if 'AproximateBox' not in self._image_patches[patch_index]:
-                    continue
-                x1 = self._image_patches[patch_index]['x'] - self._patch_margin + self._image_patches[patch_index]['AproximateBox']['x1']
-                y1 = self._image_patches[patch_index]['y'] - self._patch_margin + self._image_patches[patch_index]['AproximateBox']['y1']
-                x2 = self._image_patches[patch_index]['x'] - self._patch_margin + self._image_patches[patch_index]['AproximateBox']['x2']
-                y2 = self._image_patches[patch_index]['y'] - self._patch_margin + self._image_patches[patch_index]['AproximateBox']['y2']
-                result_image = cv2.rectangle(self._image, (x1, y1), (x2, y2), (0, 0, 0), 15)
+            if self._improve_method:
+                width, height = self._improve_boxes_wh()
+                for patch_index in self._image_patches:
+                    x1 = self._image_patches[patch_index]['x'] - int(width/2)
+                    y1 = self._image_patches[patch_index]['y'] - int(height/2)
+                    x2 = self._image_patches[patch_index]['x'] +  int(width/2)
+                    y2 = self._image_patches[patch_index]['y'] + int(height/2)
+                    result_image = cv2.rectangle(self._image, (x1, y1), (x2, y2), (0, 255, 0), 15)
+            else:
+                for patch_index in self._image_patches:
+                    if 'AproximateBox' not in self._image_patches[patch_index]:
+                        continue
+                    x1 = self._image_patches[patch_index]['x'] - self._patch_margin + self._image_patches[patch_index]['AproximateBox']['x1']
+                    y1 = self._image_patches[patch_index]['y'] - self._patch_margin + self._image_patches[patch_index]['AproximateBox']['y1']
+                    x2 = self._image_patches[patch_index]['x'] - self._patch_margin + self._image_patches[patch_index]['AproximateBox']['x2']
+                    y2 = self._image_patches[patch_index]['y'] - self._patch_margin + self._image_patches[patch_index]['AproximateBox']['y2']
+                    result_image = cv2.rectangle(self._image, (x1, y1), (x2, y2), (0, 255, 0), 15)
             
-            # cv2.imwrite(f'{uuid.uuid4().hex}.jpg', result_image)
+            # cv2.imwrite(f'result_images/{uuid.uuid4().hex}.jpg', result_image)
             cv2.imshow('Result Image', imutils.resize(result_image, height=1300))
             cv2.moveWindow('Result Image', x=0, y=0)
             cv2.waitKey()
         except:
             traceback.print_exc()
 
-    def improve_boxes_wh(self, method='mean'):  # TODO
-        for image in self._cells_cropped_images:
-            pass
-        if method == 'mean':
-            pass
+    def _improve_boxes_wh(self):
+        if self._improve_method == 'mean':
+            t_width = 0
+            t_height = 0
+            counter = 0
+            for patch_index in self._image_patches:
+                if 'AproximateBox' not in self._image_patches[patch_index]:
+                    continue
+                counter += 1
+                box = self._image_patches[patch_index]['AproximateBox']
+                t_width += abs(box['x2'] - box['x1'])
+                t_height += abs(box['y2'] - box['y1'])
+            mean_width = int(t_width / counter)
+            mean_height = int(t_height / counter)
+            return mean_width, mean_height
+
