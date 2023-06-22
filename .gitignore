@@ -1,6 +1,5 @@
-/.idea
-/venv
 .DS_Store
+.idea/
 /__pycache__
 /cells_imgs
 test.py
