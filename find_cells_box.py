@@ -1,15 +1,24 @@
-import cv2
-from utils import distanceCalculate
-import traceback
-import imutils
+import os
 import uuid
+import traceback
+
+import cv2
+import imutils
+
+from utils import distanceCalculate
 
 
 class FindCellsBox:
-    def __init__(self):
+    def __init__(self, results_path='results'):
+        self._results_path = results_path
+        os.makedirs(self._results_path, exist_ok=True)
+
         self._image = None
-        self._image_filename = None
         self._label = None
+        self._root_folder = None
+        self._base_folder = None
+        self._base_image_file_name = None
+
         self._patch_margin = None
         self._image_patches = {}
 
@@ -17,24 +26,29 @@ class FindCellsBox:
         self._canny_high = 35
 
         self._improve_method = None
+        self._results_output = None
     
     def _reset_vars(self):
         self._image = None
-        self._image_filename = None
         self._label = None
+        self._root_folder = None
+        self._base_folder = None
+        self._base_image_file_name = None
         self._patch_margin = None
         self._image_patches = {}
 
-    def detect(self, samples_data, improve_method=None):
+    def detect(self, samples_data, improve_method=None, results_output=None):
         try:
             self._improve_method = improve_method
+            self._results_output = results_output
             for sample in samples_data:
                 self._reset_vars()
-
                 image = sample['Image']
                 self._image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
                 self._label = sample['Label']
-                self._image_filename = sample['ImageFile']
+                self._root_folder = sample['RootFolder']
+                self._base_folder = sample['BaseFolder']
+                self._base_image_file_name = sample['BaseImageFileName']
 
                 self._approximate_cells()
                 self._result_image()
@@ -115,7 +129,7 @@ class FindCellsBox:
                     if distanceCalculate((cX, cY), (width/2, height/2)) > 100:
                         continue
 
-                    (x,y,w,h)  = cv2.boundingRect(c)
+                    (x, y, w, h) = cv2.boundingRect(c)
                     min_x, max_x = min(x, min_x), max(x+w, max_x)
                     min_y, max_y = min(y, min_y), max(y+h, max_y)  
                     bx.append(min_x)
@@ -126,7 +140,7 @@ class FindCellsBox:
                     traceback.print_exc()
             try:
                 if len(bx) == 0:
-                    print(f'Ops! Not detected cell in below image!\n{self._image_filename}\n')
+                    print(f'Ops! Not detected cell in below image!\n{self._base_folder}-{self._base_image_file_name}\n')
                     continue
                 x_padding = ((max(bx) - min(bx)) * 0.15)
                 y_padding = ((max(by) - min(by)) * 0.15)
@@ -136,7 +150,7 @@ class FindCellsBox:
                 y2 = int(max(by) + y_padding)
                 # result_image= cv2.rectangle(image.copy(), (x1, y1), (x2, y2), (255, 0, 0), 2)
 
-                self._image_patches[patch_index]['AproximateBox'] = {
+                self._image_patches[patch_index]['ApproximateBox'] = {
                     'x1': x1,
                     'y1': y1,
                     'x2': x2,
@@ -144,43 +158,50 @@ class FindCellsBox:
                 }
             except:
                 traceback.print_exc()
-            # cv2.imshow('Orginal Image', result_image)
-            # cv2.moveWindow('Orginal Image', x=0, y=0)
-
-            # cv2.imshow('Gray', gray)
-            # cv2.moveWindow('Gray', x=530, y=0)
-
-            # cv2.imshow('Canny', edges)
-            # cv2.moveWindow('Canny', x=530 *2, y=0)
-            # print('inja')
-            # cv2.waitKey()
 
     def _result_image(self):
         try:
+            image = self._image.copy()
             if self._improve_method:
                 width, height = self._improve_boxes_wh()
                 for patch_index in self._image_patches:
                     x1 = self._image_patches[patch_index]['x'] - int(width/2)
                     y1 = self._image_patches[patch_index]['y'] - int(height/2)
-                    x2 = self._image_patches[patch_index]['x'] +  int(width/2)
+                    x2 = self._image_patches[patch_index]['x'] + int(width/2)
                     y2 = self._image_patches[patch_index]['y'] + int(height/2)
-                    result_image = cv2.rectangle(self._image, (x1, y1), (x2, y2), (0, 255, 0), 15)
+                    cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 15)
+                    if self._results_output == 'write_cells':
+                        self._save_cell_image(x1, y1, x2, y2)
             else:
                 for patch_index in self._image_patches:
-                    if 'AproximateBox' not in self._image_patches[patch_index]:
+                    if 'ApproximateBox' not in self._image_patches[patch_index]:
                         continue
-                    x1 = self._image_patches[patch_index]['x'] - self._patch_margin + self._image_patches[patch_index]['AproximateBox']['x1']
-                    y1 = self._image_patches[patch_index]['y'] - self._patch_margin + self._image_patches[patch_index]['AproximateBox']['y1']
-                    x2 = self._image_patches[patch_index]['x'] - self._patch_margin + self._image_patches[patch_index]['AproximateBox']['x2']
-                    y2 = self._image_patches[patch_index]['y'] - self._patch_margin + self._image_patches[patch_index]['AproximateBox']['y2']
-                    result_image = cv2.rectangle(self._image, (x1, y1), (x2, y2), (0, 255, 0), 15)
-            
-            # cv2.imwrite(f'result_images/{uuid.uuid4().hex}.jpg', result_image)
-            cv2.imshow('Result Image', imutils.resize(result_image, height=1300))
-            cv2.moveWindow('Result Image', x=0, y=0)
-            cv2.waitKey()
+                    x1 = self._image_patches[patch_index]['x'] - self._patch_margin + self._image_patches[patch_index]['ApproximateBox']['x1']
+                    y1 = self._image_patches[patch_index]['y'] - self._patch_margin + self._image_patches[patch_index]['ApproximateBox']['y1']
+                    x2 = self._image_patches[patch_index]['x'] - self._patch_margin + self._image_patches[patch_index]['ApproximateBox']['x2']
+                    y2 = self._image_patches[patch_index]['y'] - self._patch_margin + self._image_patches[patch_index]['ApproximateBox']['y2']
+                    cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 15)
+                    if self._results_output == 'write_cells':
+                        self._save_cell_image(x1, y1, x2, y2)
+            if self._results_output == 'write_frames':
+                folder = os.path.join(self._results_path, 'frames')
+                folder = os.path.join(folder, self._base_folder)
+                os.makedirs(folder, exist_ok=True)
+                file_name = os.path.join(folder, f'{uuid.uuid4().hex}.jpg')
+                cv2.imwrite(file_name, image)
+            elif self._results_output == 'show':
+                cv2.imshow('Result Image', imutils.resize(image, height=1300))
+                cv2.moveWindow('Result Image', x=0, y=0)
+                cv2.waitKey()
         except:
             traceback.print_exc()
+
+    def _save_cell_image(self, x1, y1, x2, y2):
+        folder = os.path.join(self._results_path, 'cells')
+        folder = os.path.join(folder, self._base_folder)
+        os.makedirs(folder, exist_ok=True)
+        file_name = os.path.join(folder, self._base_image_file_name)
+        cv2.imwrite(file_name, self._image[y1:y2, x1:x2])
 
     def _improve_boxes_wh(self):
         if self._improve_method == 'mean':
@@ -188,13 +209,12 @@ class FindCellsBox:
             t_height = 0
             counter = 0
             for patch_index in self._image_patches:
-                if 'AproximateBox' not in self._image_patches[patch_index]:
+                if 'ApproximateBox' not in self._image_patches[patch_index]:
                     continue
                 counter += 1
-                box = self._image_patches[patch_index]['AproximateBox']
+                box = self._image_patches[patch_index]['ApproximateBox']
                 t_width += abs(box['x2'] - box['x1'])
                 t_height += abs(box['y2'] - box['y1'])
             mean_width = int(t_width / counter)
             mean_height = int(t_height / counter)
             return mean_width, mean_height
-

@@ -1,3 +1,5 @@
+import os
+
 import cv2
 
 
@@ -11,8 +13,14 @@ class SamplesData:
 
     def _load_data(self):
         for index, sample in enumerate(self._samples_data):
-            self._samples_data[index]['Image'] = cv2.imread(sample['ImageFile'])
-            self._samples_data[index]['Label'] = self._read_label(sample['LabelFile'])
+            image_file_name = os.path.join(
+                os.path.join(sample['RootFolder'], sample['BaseFolder']), sample['BaseImageFileName']
+            )
+            label_file_name = os.path.join(
+                os.path.join(sample['RootFolder'], sample['BaseFolder']), sample['BaseLabelFileName']
+            )
+            self._samples_data[index]['Image'] = cv2.imread(image_file_name)
+            self._samples_data[index]['Label'] = self._read_label(label_file_name)
 
     @staticmethod
     def _read_label(label_file):
