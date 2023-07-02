@@ -1,9 +1,11 @@
 import os
+import time
 import uuid
 import traceback
 
 import cv2
 import imutils
+from tqdm import tqdm
 
 from utils import distanceCalculate
 
@@ -41,7 +43,8 @@ class FindCellsBox:
         try:
             self._improve_method = improve_method
             self._results_output = results_output
-            for sample in samples_data:
+            for sample in tqdm(samples_data):
+                time.sleep(1)
                 self._reset_vars()
                 image = sample['Image']
                 self._image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
@@ -187,7 +190,7 @@ class FindCellsBox:
                 folder = os.path.join(self._results_path, 'frames')
                 folder = os.path.join(folder, self._base_folder)
                 os.makedirs(folder, exist_ok=True)
-                file_name = os.path.join(folder, f'{uuid.uuid4().hex}.jpg')
+                file_name = os.path.join(folder, self._base_image_file_name)
                 cv2.imwrite(file_name, image)
             elif self._results_output == 'show':
                 cv2.imshow('Result Image', imutils.resize(image, height=1300))
@@ -200,7 +203,7 @@ class FindCellsBox:
         folder = os.path.join(self._results_path, 'cells')
         folder = os.path.join(folder, self._base_folder)
         os.makedirs(folder, exist_ok=True)
-        file_name = os.path.join(folder, self._base_image_file_name)
+        file_name = os.path.join(folder, f'{uuid.uuid4()}_{self._base_image_file_name}')
         cv2.imwrite(file_name, self._image[y1:y2, x1:x2])
 
     def _improve_boxes_wh(self):

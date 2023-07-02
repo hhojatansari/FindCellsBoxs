@@ -1,6 +1,7 @@
 import os
 
 import cv2
+import numpy as np
 
 
 class SamplesData:
@@ -48,3 +49,6 @@ class SamplesData:
                 return self._samples_data
         except:
             return None
+
+    def split_data(self, split_number):
+        return np.array_split(self._samples_data, split_number)
