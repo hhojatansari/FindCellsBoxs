@@ -7,7 +7,6 @@ class SamplesInfo:
         self._data_path = data_path
         self._data = []
 
-        self._counter = 0
         self._folder_path = None
         self._folder_files = None
         self._image_file = None
@@ -17,27 +16,27 @@ class SamplesInfo:
         self._load()
 
     def _load(self):
-        folders = os.listdir(self._data_path)
-        if '.DS_Store' in folders:
-            folders.remove('.DS_Store')
+        folders = self._just_folders(self._data_path)
+        folder_dict = {}
 
         for folder in folders:
-            self._folder_path = os.path.join(self._data_path, folder)
-            self._folder_files = os.listdir(self._folder_path)
+            image_files_list = self._just_files(folder, extension_list=['jpg'])
+            base_folder = os.path.basename(folder)
+            folder_dict[base_folder] = {}
 
-            # if not self.is_valid_files():
-            #     continue
-            if not self.files_exist():
-                continue
-            self._data.append(
-                {
-                    'Name': self._filename,
-                    'FolderPath': self._folder_path,
-                    'ImageFile': self._image_file,
-                    'LabelFile': self._label_file
-                }
-            )
-            self._counter += 1
+            for file in image_files_list:
+                base_file_name = os.path.basename(file).split('.')[0]
+                if self._check_files_exists(folder, base_file_name):
+                    self._data.append(
+                        {
+                            'RootFolder': self._data_path,
+                            'BaseFolder': base_folder,
+                            'BaseImageFileName': base_file_name + '.jpg',
+                            'BaseLabelFileName': base_file_name + '.txt'
+                         }
+                    )
+                else:
+                    print(f'Warning: file not exists!\nFile: {file}\n')
         return self
 
     def __getitem__(self, value):
@@ -81,3 +80,29 @@ class SamplesInfo:
 
     def __len__(self):
         return len(self._data)
+
+    @staticmethod
+    def _check_files_exists(path, base_file_name):
+        if os.path.isfile(os.path.join(path, base_file_name + '.jpg')) and \
+                os.path.isfile(os.path.join(path, base_file_name + '.txt')):
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def _just_folders(path):
+        folders = []
+        for folder in os.listdir(path):
+            if os.path.isdir(os.path.join(path, folder)):
+                folders.append(os.path.join(path, folder))
+        return folders
+
+    @staticmethod
+    def _just_files(path, extension_list):
+        files = []
+        for file in os.listdir(path):
+            if os.path.isfile(os.path.join(path, file)):
+                for ext in extension_list:
+                    if ext in file:
+                        files.append(os.path.join(path, file))
+        return files
