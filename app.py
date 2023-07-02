@@ -7,6 +7,6 @@ data_path = '/Users/hosein/Projects/Cells/samples/'
 
 samples_info = SamplesInfo(data_path)
 samples_data = SamplesData(samples_info[0:])
-cells_detector = FindCellsBox()
+cells_detector = FindCellsBox(results_path='results_data')
 
-cells_detector.detect(samples_data[0:], improve_method='mean')
+cells_detector.detect(samples_data[0:], improve_method='mean', results_output='write_cells')
