@@ -2,6 +2,7 @@ import os
 
 import cv2
 import numpy as np
+from tqdm import tqdm
 
 
 class SamplesData:
@@ -13,7 +14,7 @@ class SamplesData:
         self._load_data()
 
     def _load_data(self):
-        for index, sample in enumerate(self._samples_data):
+        for index, sample in tqdm(enumerate(self._samples_data)):
             image_file_name = os.path.join(
                 os.path.join(os.path.join(sample['RootFolder'], 'images'), sample['BaseFolder']),
                 sample['BaseImageFileName']
