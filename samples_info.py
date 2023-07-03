@@ -16,7 +16,7 @@ class SamplesInfo:
         self._load()
 
     def _load(self):
-        folders = self._just_folders(self._data_path)
+        folders = self._just_folders(os.path.join(self._data_path, 'images'))
         folder_dict = {}
 
         for folder in folders:
@@ -84,9 +84,10 @@ class SamplesInfo:
     @staticmethod
     def _check_files_exists(path, base_file_name):
         if os.path.isfile(os.path.join(path, base_file_name + '.jpg')) and \
-                os.path.isfile(os.path.join(path, base_file_name + '.txt')):
+                os.path.isfile(os.path.join(path.replace(os.sep+'images'+os.sep, os.sep+'labels'+os.sep), base_file_name + '.txt')):
             return True
         else:
+            print(os.path.join(path, base_file_name + '.txt'))
             return False
 
     @staticmethod
