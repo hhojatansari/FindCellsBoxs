@@ -1,6 +1,9 @@
 import os
 import traceback
 
+import numpy as np
+from tqdm import tqdm
+
 
 class SamplesInfo:
     def __init__(self, data_path):
@@ -81,6 +84,9 @@ class SamplesInfo:
     def __len__(self):
         return len(self._data)
 
+    def split_data(self, split_number):
+        return np.array_split(self._data, split_number)
+        
     @staticmethod
     def _check_files_exists(path, base_file_name):
         if os.path.isfile(os.path.join(path, base_file_name + '.jpg')) and \
